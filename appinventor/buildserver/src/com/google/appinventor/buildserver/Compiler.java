@@ -28,6 +28,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.util.ArrayList;
@@ -267,6 +268,7 @@ public final class Compiler {
 
     nativeLibrariesNeeded = Sets.newHashSet();
     for (String componentType : componentTypes) {
+    	if(!componentType.startsWith("WANDDY"))
       nativeLibrariesNeeded.addAll(componentNativeLibraries.get(componentType));
     }
     System.out.println("Native Libraries needed, n= " + nativeLibrariesNeeded.size());
@@ -292,6 +294,7 @@ public final class Compiler {
 
     assetsNeeded = Sets.newHashSet();
     for (String componentType : componentTypes) {
+    	if(!componentType.startsWith("WANDDY"))
       assetsNeeded.addAll(componentAssets.get(componentType));
     }
     System.out.println("Component assets needed, n= " + assetsNeeded.size());
@@ -314,7 +317,7 @@ public final class Compiler {
     String WANDDYTitle=projectName;
     int WANDDYstyle=1;
     try{
-    Iterator it=this.componentTypes.iterator();
+    Iterator<String> it=this.componentTypes.iterator();
     while(it.hasNext()){
     	String tmp=it.next().toString();
     	if(tmp.startsWith("WANDDY"))
@@ -331,7 +334,7 @@ public final class Compiler {
     }
     // TODO(user): Use com.google.common.xml.XmlWriter
     try {
-      BufferedWriter out = new BufferedWriter(new FileWriter(manifestFile));
+      BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(manifestFile), "UTF8"));
       out.write("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
       // TODO(markf) Allow users to set versionCode and versionName attributes.
       // See http://developer.android.com/guide/publishing/publishing.html for
