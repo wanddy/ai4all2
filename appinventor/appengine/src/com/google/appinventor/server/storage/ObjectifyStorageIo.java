@@ -19,6 +19,7 @@ import com.google.appengine.api.memcache.Expiration;
 import com.google.appinventor.server.CrashReport;
 import com.google.appinventor.server.FileExporter;
 import com.google.appinventor.server.flags.Flag;
+import com.google.appinventor.server.storage.StoredData.CorruptionRecord;
 import com.google.appinventor.server.storage.StoredData.FeedbackData;
 import com.google.appinventor.server.storage.StoredData.FileData;
 import com.google.appinventor.server.storage.StoredData.MotdData;
@@ -29,12 +30,14 @@ import com.google.appinventor.server.storage.StoredData.UserFileData;
 import com.google.appinventor.server.storage.StoredData.UserProjectData;
 import com.google.appinventor.server.storage.StoredData.RendezvousData;
 import com.google.appinventor.server.storage.StoredData.WhiteListData;
+import com.google.appinventor.shared.rpc.BlocksTruncatedException;
 import com.google.appinventor.shared.rpc.Motd;
 import com.google.appinventor.shared.rpc.Nonce;
 import com.google.appinventor.shared.rpc.project.Project;
 import com.google.appinventor.shared.rpc.project.ProjectSourceZip;
 import com.google.appinventor.shared.rpc.project.RawFile;
 import com.google.appinventor.shared.rpc.project.TextFile;
+import com.google.appinventor.shared.rpc.project.UserProject;
 import com.google.appinventor.shared.rpc.project.youngandroid.YoungAndroidProjectNode;
 import com.google.appinventor.shared.rpc.user.User;
 import com.google.appinventor.shared.storage.StorageUtil;
@@ -146,6 +149,7 @@ public class ObjectifyStorageIo implements  StorageIo {
     ObjectifyService.register(WhiteListData.class);
     ObjectifyService.register(FeedbackData.class);
     ObjectifyService.register(NonceData.class);
+    ObjectifyService.register(CorruptionRecord.class);
   }
 
   ObjectifyStorageIo() {
@@ -178,7 +182,7 @@ public class ObjectifyStorageIo implements  StorageIo {
       return tuser;
     } else {                    // If not in memcache, or tos
                                 // not yet accepted, fetch from datastore
-      tuser = new User(userId, email, false, false);
+      tuser = new User(userId, email, false, false, null);
     }
     final User user = tuser;
     try {
@@ -194,6 +198,7 @@ public class ObjectifyStorageIo implements  StorageIo {
           }
           user.setUserEmail(userData.email);
           user.setUserTosAccepted(userData.tosAccepted || !requireTos.get());
+          user.setSessionId(userData.sessionid);
         }
       });
     } catch (ObjectifyException e) {
@@ -253,6 +258,26 @@ public class ObjectifyStorageIo implements  StorageIo {
     } catch (ObjectifyException e) {
       throw CrashReport.createAndLogError(LOG, null, collectUserErrorInfo(userId), e);
     }
+  }
+
+  @Override
+  public void setUserSessionId(final String userId, final String sessionId) {
+    String cachekey = User.usercachekey + "|" + userId;
+    try {
+      runJobWithRetries(new JobRetryHelper() {
+        @Override
+        public void run(Objectify datastore) {
+          UserData userData = datastore.find(userKey(userId));
+          if (userData != null) {
+            userData.sessionid = sessionId;
+            datastore.put(userData);
+          }
+        }
+      });
+    } catch (ObjectifyException e) {
+      throw CrashReport.createAndLogError(LOG, null, collectUserErrorInfo(userId), e);
+    }
+    memcache.delete(cachekey);  // Flush cached copy because it changed
   }
 
   @Override
@@ -584,6 +609,34 @@ public class ObjectifyStorageIo implements  StorageIo {
   }
 
   @Override
+  public UserProject getUserProject(final String userId, final long projectId) {
+    final Result<ProjectData> projectData = new Result<ProjectData>();
+    try {
+      runJobWithRetries(new JobRetryHelper() {
+        @Override
+        public void run(Objectify datastore) {
+          ProjectData pd = datastore.find(projectKey(projectId));
+          if (pd != null) {
+            projectData.t = pd;
+          } else {
+            projectData.t = null;
+          }
+        }
+      });
+    } catch (ObjectifyException e) {
+      throw CrashReport.createAndLogError(LOG, null,
+          collectUserProjectErrorInfo(userId, projectId), e);
+    }
+    if (projectData == null) {
+      return null;
+    } else {
+      return new UserProject(projectId, projectData.t.name,
+          projectData.t.type, projectData.t.dateCreated,
+          projectData.t.dateModified);
+    }
+  }
+
+  @Override
   public String getProjectName(final String userId, final long projectId) {
     final Result<String> projectName = new Result<String>();
     try {
@@ -652,28 +705,6 @@ public class ObjectifyStorageIo implements  StorageIo {
           collectUserProjectErrorInfo(userId, projectId), e);
     }
     return projectHistory.t;
-  }
-
-  @Override
-  public long getProjectDateCreated(final String userId, final long projectId) {
-    final Result<Long> dateCreated = new Result<Long>();
-    try {
-      runJobWithRetries(new JobRetryHelper() {
-        @Override
-        public void run(Objectify datastore) {
-          ProjectData pd = datastore.find(projectKey(projectId));
-          if (pd != null) {
-            dateCreated.t = pd.dateCreated;
-          } else {
-            dateCreated.t = Long.valueOf(0);
-          }
-        }
-      });
-    } catch (ObjectifyException e) {
-      throw CrashReport.createAndLogError(LOG, null,
-          collectUserProjectErrorInfo(userId, projectId), e);
-    }
-    return dateCreated.t;
   }
 
   @Override
@@ -1039,9 +1070,20 @@ public class ObjectifyStorageIo implements  StorageIo {
 
   @Override
   public long uploadFile(final long projectId, final String fileName, final String userId,
+      final String content, final String encoding) throws BlocksTruncatedException {
+    try {
+      return uploadRawFile(projectId, fileName, userId, false, content.getBytes(encoding));
+    } catch (UnsupportedEncodingException e) {
+      throw CrashReport.createAndLogError(LOG, null, "Unsupported file content encoding,"
+          + collectProjectErrorInfo(null, projectId, fileName), e);
+    }
+  }
+
+  @Override
+  public long uploadFileForce(final long projectId, final String fileName, final String userId,
       final String content, final String encoding) {
     try {
-      return uploadRawFile(projectId, fileName, userId, content.getBytes(encoding));
+      return uploadRawFileForce(projectId, fileName, userId, content.getBytes(encoding));
     } catch (UnsupportedEncodingException e) {
       throw CrashReport.createAndLogError(LOG, null, "Unsupported file content encoding,"
           + collectProjectErrorInfo(null, projectId, fileName), e);
@@ -1062,8 +1104,19 @@ public class ObjectifyStorageIo implements  StorageIo {
   }
 
   @Override
-  public long uploadRawFile(final long projectId, final String fileName, final String userId,
+  public long uploadRawFileForce(final long projectId, final String fileName, final String userId,
       final byte[] content) {
+    try {
+      return uploadRawFile(projectId, fileName, userId, true, content);
+    } catch (BlocksTruncatedException e) {
+      // Won't get here, exception isn't thrown when force is true
+      return 0;
+    }
+  }
+
+  @Override
+  public long uploadRawFile(final long projectId, final String fileName, final String userId,
+      final boolean force, final byte[] content) throws BlocksTruncatedException {
     final Result<Long> modTime = new Result<Long>();
     final boolean useBlobstore = useBlobstoreForFile(fileName, content.length);
     final boolean useGCS = useGCSforFile(fileName, content.length);
@@ -1088,6 +1141,13 @@ public class ObjectifyStorageIo implements  StorageIo {
           }
 
           Preconditions.checkState(fd != null);
+
+          if ((content.length < 120) && (fileName.endsWith(".bky"))) { // Likely this is an empty blocks workspace
+            if (!force) {            // force is true if we *really* want to save it!
+              checkForBlocksTruncation(fd); // See if we had previous content and throw and exception if so
+            }
+          }
+
           if (fd.isBlob) {
             // mark the old blobstore blob for deletion
            oldBlobstorePath.t = fd.blobstorePath;
@@ -1177,6 +1237,9 @@ public class ObjectifyStorageIo implements  StorageIo {
         deleteBlobstoreFile(oldBlobstorePath.t);
       }
     } catch (ObjectifyException e) {
+      if (e.getMessage().startsWith("Blocks")) { // Convert Exception
+        throw new BlocksTruncatedException();
+      }
       throw CrashReport.createAndLogError(LOG, null,
           collectProjectErrorInfo(userId, projectId, fileName), e);
     }
@@ -1312,6 +1375,28 @@ public class ObjectifyStorageIo implements  StorageIo {
     } catch (UnsupportedEncodingException e) {
       throw CrashReport.createAndLogError(LOG, null, "Unsupported file content encoding, "
           + collectProjectErrorInfo(userId, projectId, fileName), e);
+    }
+  }
+
+  @Override
+  public void recordCorruption(String userId, long projectId, String fileId, String message) {
+    Objectify datastore = ObjectifyService.begin();
+    final CorruptionRecord data = new CorruptionRecord();
+    data.timestamp = new Date();
+    data.id = null;
+    data.userId = userId;
+    data.fileId = fileId;
+    data.projectId = projectId;
+    data.message = message;
+    try {
+      runJobWithRetries(new JobRetryHelper() {
+          @Override
+          public void run(Objectify datastore) {
+            datastore.put(data);
+          }
+        });
+    } catch (ObjectifyException e) {
+      throw CrashReport.createAndLogError(LOG, null, null, e);
     }
   }
 
@@ -1813,6 +1898,10 @@ public class ObjectifyStorageIo implements  StorageIo {
         job.onNonFatalError();
         LOG.log(Level.WARNING, "Optimistic concurrency failure", ex);
       } catch (ObjectifyException oe) {
+        String message = oe.getMessage();
+        if (message != null && message.startsWith("Blocks")) { // This one is fatal!
+          throw oe;
+        }
         // maybe this should be a fatal error? I think the only thing
         // that creates this exception (other than this method) is uploadToBlobstore
         job.onNonFatalError();
@@ -1881,6 +1970,18 @@ public class ObjectifyStorageIo implements  StorageIo {
   private static String formattedTime() {
     java.text.SimpleDateFormat formatter = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
     return formatter.format(new java.util.Date());
+  }
+
+  // We are called when our caller detects we are about to write a trivial (empty)
+  // workspace. We check to see if previously the workspace was non-trivial and
+  // if so, throw the BlocksTruncatedException. This will be passed through the RPC
+  // layer to the client code which will put up a dialog box for the user to review
+  // See Ode.java for more information
+  private void checkForBlocksTruncation(FileData fd) throws ObjectifyException {
+    if (fd.isBlob || fd.isGCS || fd.content.length > 120)
+      throw new ObjectifyException("BlocksTruncated"); // Hack
+    // I'm avoiding having to modify every use of runJobWithRetries to handle a new
+    // exception, so we use this dodge.
   }
 
 }

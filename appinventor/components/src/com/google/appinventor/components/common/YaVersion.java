@@ -241,8 +241,25 @@ public class YaVersion {
   // - FORM_COMPONENT_VERSION was incremented to 12.
   // For YOUNG_ANDROID_VERSION 85:
   // - CAMERA_COMPONENT_VERSION was incremented to 2.
+  // For YOUNG_ANDROID_VERSION 86:
+  // - VIDEOPLAYER_COMPONENT_VERSION was incremented to 5.
+  // - The Sharing Component was added
+  // For YOUNG_ANDROID_VERSION 87:
+  // - WEBVIEWER_COMPONENT_VERSION was incremented to 4
+  // For YOUNG_ANDROID_VERSION 88:
+  // - SPINNER_COMPONENT_VERSION was incremented to 1
+  // For YOUNG_ANDROID_VERSION 89:
+  // - LISTVIEW_COMPONENT_VERSION was incremented to 1.
+  // For YOUNG_ANDROID_VERSION 90:
+  // - TEXTTOSPEECH_COMPONENT_VERSION was incremented to 2
+  // For YOUNG_ANDROID_VERSION 91:
+  // - DATEPICKER_COMPONENT_VERSION was incremented to 1.
+  // For YOUNG_ANDROID_VERSION 92:
+  // - TIMEPICKER_COMPONENT_VERSION was incremented to 1
+  // For YOUNG_ANDROID_VERSION 93:
+  // - FILE_COMPONENT_VERSION was incremented to 1.
 
-    public static final int YOUNG_ANDROID_VERSION = 85;
+    public static final int YOUNG_ANDROID_VERSION = 93;
 
   // ............................... Blocks Language Version Number ...............................
 
@@ -295,6 +312,7 @@ public class YaVersion {
   // - Marked close-screen-with-result as a bad block
   // - Added close-screen-with-value
   // - Added close-screen-with-plain-text
+
   public static final int BLOCKS_LANGUAGE_VERSION = 17;
 
   // ................................. Component Version Numbers ..................................
@@ -414,6 +432,11 @@ public class YaVersion {
   // For EMAILPICKER_COMPONENT_VERSION 2:
   // - The Alignment property was renamed to TextAlignment.
   public static final int EMAILPICKER_COMPONENT_VERSION = 2;
+
+  public static final int DATEPICKER_COMPONENT_VERSION = 1;
+
+  // For FILE_COMPONENT_VERSION 1:
+  public static final int FILE_COMPONENT_VERSION = 1;
 
   // For FORM_COMPONENT_VERSION 2:
   // - The Screen.Scrollable property was added.
@@ -566,6 +589,8 @@ public class YaVersion {
 
   public static final int PLAYER_COMPONENT_VERSION = 5;
 
+  public static final int SHARING_COMPONENT_VERSION = 1;
+
   // For SOUND_COMPONENT_VERSION 2:
   // - The Sound.SoundError event was added.
   // For SOUND_COMPONENT_VERSION 3:
@@ -587,7 +612,8 @@ public class YaVersion {
   // - The MultiLine property was added.
   public static final int TEXTBOX_COMPONENT_VERSION = 4;
 
-  public static final int TEXTTOSPEECH_COMPONENT_VERSION = 1;
+  // For TEXTTOSPEECH_COMPONENT_VERSION, added speech pitch and rate
+  public static final int TEXTTOSPEECH_COMPONENT_VERSION = 2;
 
   // For TEXTING_COMPONENT_VERSION 2:
   // Texting over Wifi was implemented using Google Voice
@@ -599,6 +625,8 @@ public class YaVersion {
   // - receivingEnabled is now an integer in the range 1-3
   //   instead of a boolean
   public static final int TEXTING_COMPONENT_VERSION = 3;
+
+  public static final int TIMEPICKER_COMPONENT_VERSION = 1;
 
   public static final int TINYDB_COMPONENT_VERSION = 1;
 
@@ -643,7 +671,9 @@ public class YaVersion {
   // For VIDEOPLAYER_COMPONENT_VERSION 4:
   // - The VideoPlayer.width and VideoPlayer.height variables were marked as user visible.
   // - The FullScreen property was added to the VideoPlayer.
-  public static final int VIDEOPLAYER_COMPONENT_VERSION = 4;
+  // For VIDEOPLAYER_COMPONENT_VERSION 5:
+  // - The Volume property (setter only) was added to the VideoPlayer.
+  public static final int VIDEOPLAYER_COMPONENT_VERSION = 5;
 
   public static final int VOTING_COMPONENT_VERSION = 1;
 
@@ -660,11 +690,19 @@ public class YaVersion {
   // - The CanGoForward and CanGoBack methods were added
   // For WEBVIEWER_COMPONENT_VERSION 3:
   // - Add UsesLocation property to set location permissions
-  public static final int WEBVIEWER_COMPONENT_VERSION = 3;
+  // For WEBVIEWER_COMPONENT_VERSION 4:
+  // - Add WebViewString
+  public static final int WEBVIEWER_COMPONENT_VERSION = 4;
 
   // For SLIDER_COMPONENT_VERSION 1:
   // - Initial version.
   public static final int SLIDER_COMPONENT_VERSION = 1;
+
+  // For SPINNER_COMPONENT_VERSION 1:
+  public static final int SPINNER_COMPONENT_VERSION = 1;
+
+  // For listView component Version
+  public static final int LISTVIEW_COMPONENT_VERSION = 1;
 
   // Companion Versions and Update Information
 
@@ -681,9 +719,9 @@ public class YaVersion {
   // key as the Companion it is replacing, as the Package Manager
   // is invoked from the running Companion.
 
-  public static final String PREFERRED_COMPANION = "2.16ai2zx1";
+  public static final String PREFERRED_COMPANION = "2.17ai2zx1";
   public static final String COMPANION_UPDATE_URL = "";
-  public static final String [] ACCEPTABLE_COMPANIONS = { "2.15ai2", "2.15ai2zx1", "2.16ai2", "2.16ai2zx1" };
+  public static final String [] ACCEPTABLE_COMPANIONS = { "2.15ai2", "2.15ai2zx1", "2.16ai2", "2.16ai2zx1", "2.17ai2", "2.17ai2zx1" };
 
   // Splash Screen Values
   public static final int SPLASH_SURVEY = 1;
