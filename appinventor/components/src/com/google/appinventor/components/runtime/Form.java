@@ -1306,7 +1306,7 @@ public class Form extends Activity
 
   public void addExitButtonToMenu(Menu menu) {
     MenuItem stopApplicationItem = menu.add(Menu.NONE, Menu.NONE, Menu.FIRST,
-    "Stop this application")
+    "\u5173\u95ed\u5e94\u7528")
     .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
         showExitApplicationNotification();
@@ -1318,7 +1318,7 @@ public class Form extends Activity
 
   public void addAboutInfoToMenu(Menu menu) {
     MenuItem aboutAppItem = menu.add(Menu.NONE, Menu.NONE, 2,
-    "About this application")
+    "\u5173\u4e8e\u5e94\u7528")
     .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
         showAboutApplicationNotification();
@@ -1329,11 +1329,11 @@ public class Form extends Activity
   }
 
   private void showExitApplicationNotification() {
-    String title = "Stop application?";
-    String message = "Stop this application and exit? You'll need to relaunch " +
-        "the application to use it again.";
-    String positiveButton = "Stop and exit";
-    String negativeButton = "Don't stop";
+    String title = "\u5173\u95ed\u5e94\u7528?";
+    String message = "\u5173\u95ed\u5e76\u9000\u51fa?" ;//+
+        //"the application to use it again.";
+    String positiveButton = "\u5173\u95ed\u5e76\u9000\u51fa";
+    String negativeButton = "\u4e0d\u5173\u95ed";
     // These runnables are passed to twoButtonAlert.  They perform the corresponding actions
     // when the button is pressed.   Here there's nothing to do for "don't stop" and cancel
     Runnable stopApplication = new Runnable() {public void run () {closeApplicationFromMenu();}};
@@ -1357,10 +1357,10 @@ public class Form extends Activity
   }
 
   private void showAboutApplicationNotification() {
-    String title = "About This App";
-    String tagline = "<p><small><em>Invented with MIT App Inventor<br>appinventor.mit.edu</em></small>";
+    String title = "\u5173\u4e8e\u6b64\u5e94\u7528";
+    String tagline = "";//"<p><small><em>Invented with MIT App Inventor<br>appinventor.mit.edu</em></small>";
     String message = aboutScreen + tagline + yandexTranslateTagline;
-    String buttonText ="Got it";
+    String buttonText ="\u4e86\u89e3";
     Notifier.oneButtonAlert(this, message, title, buttonText);
   }
 
